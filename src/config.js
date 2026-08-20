@@ -73,10 +73,16 @@ export async function firstWorking(candidates, args) {
   return null;
 }
 
-function clampVolume(value, fallback) {
-  const parsed = Number.parseInt(value ?? '', 10);
-  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
-  return Math.min(parsed, 1000);
+/**
+ * Reads a whole number from the environment. An empty or unparseable value
+ * falls back rather than becoming 0 or NaN, because panels and compose files
+ * routinely pass an empty string for a setting nobody filled in, and NaN in
+ * particular turns a timeout into "fire immediately".
+ */
+function intEnv(name, fallback, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) {
+  const parsed = Number.parseInt((process.env[name] ?? '').trim(), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(Math.max(parsed, min), max);
 }
 
 export const config = {
@@ -90,13 +96,13 @@ export const config = {
   cookiesPath: process.env.YTDLP_COOKIES || null,
   spotifyClientId: process.env.SPOTIFY_CLIENT_ID || null,
   spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET || null,
-  leaveTimeout: Number.parseInt(process.env.LEAVE_TIMEOUT ?? '120', 10) * 1000,
+  leaveTimeout: intEnv('LEAVE_TIMEOUT', 120, { max: 86_400 }) * 1000,
   maxQueueSize: 500,
-  defaultVolume: clampVolume(process.env.DEFAULT_VOLUME, 100),
-  maxVolume: clampVolume(process.env.MAX_VOLUME, 200),
-  volumeRampMs: Math.min(Math.max(Number.parseInt(process.env.VOLUME_RAMP_MS ?? '1500', 10) || 0, 0), 10_000),
-  fadeInMs: Math.min(Math.max(Number.parseInt(process.env.FADE_IN_MS ?? '1500', 10) || 0, 0), 30_000),
-  fadeInFrom: clampVolume(process.env.FADE_IN_FROM, 50),
+  defaultVolume: intEnv('DEFAULT_VOLUME', 100, { max: 1000 }),
+  maxVolume: intEnv('MAX_VOLUME', 200, { max: 1000 }),
+  volumeRampMs: intEnv('VOLUME_RAMP_MS', 1500, { max: 10_000 }),
+  fadeInMs: intEnv('FADE_IN_MS', 1500, { max: 30_000 }),
+  fadeInFrom: intEnv('FADE_IN_FROM', 50, { max: 1000 }),
 };
 
 /**
