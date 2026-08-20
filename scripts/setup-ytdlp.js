@@ -60,11 +60,13 @@ function run(binary, args) {
 }
 
 let binary = await firstWorking(ytDlpCandidates());
+let freshlyDownloaded = false;
 
 if (!binary) {
   console.log('No yt-dlp present yet, setting one up.');
   try {
     binary = await download();
+    freshlyDownloaded = Boolean(binary);
   } catch (error) {
     console.warn(`Could not download yt-dlp: ${error.message}`);
   }
@@ -75,7 +77,9 @@ if (!binary) {
   process.exit(0);
 }
 
-if (!(await run(binary, ['--update-to', 'nightly']))) {
+// A fresh download already came from the latest nightly, so asking it to
+// update again only costs a round trip and two confusing lines of output.
+if (!freshlyDownloaded && !(await run(binary, ['--update-to', 'nightly']))) {
   console.warn('Could not move yt-dlp to the nightly channel. Playback may still work.');
 }
 
