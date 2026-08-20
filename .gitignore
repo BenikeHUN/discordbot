@@ -9,3 +9,6 @@ npm-debug.log*
 
 # Scratch space for the yt-dlp bundle unpacking itself
 tmp/
+
+# Remembered per server settings
+data/

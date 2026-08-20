@@ -100,6 +100,7 @@ export const config = {
   spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET || null,
   leaveTimeout: intEnv('LEAVE_TIMEOUT', 120, { max: 86_400 }) * 1000,
   tempDir: path.join(projectRoot, 'tmp'),
+  dataDir: path.join(projectRoot, 'data'),
   maxQueueSize: 500,
   defaultVolume: intEnv('DEFAULT_VOLUME', 100, { max: 1000 }),
   maxVolume: intEnv('MAX_VOLUME', 200, { max: 1000 }),

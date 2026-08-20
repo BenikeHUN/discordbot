@@ -13,12 +13,14 @@ import { deployCommands } from './deploy-commands.js';
 import { CommandError } from './guards.js';
 import { InteractionContext, MessageContext } from './context.js';
 import { allPlayers, getPlayer, playerEvents } from './player.js';
+import { flushSettings, loadSettings } from './store.js';
 import { baseEmbed, trackEmbed } from './format.js';
 
 assertConfig();
 await loadCommands();
 
 prepareTempDir();
+loadSettings();
 
 // Pick binaries that actually run here before anyone can issue a command.
 try {
@@ -208,6 +210,7 @@ playerEvents.on('create', (player) => {
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
   process.on(signal, () => {
+    flushSettings();
     for (const player of allPlayers()) player.destroy();
     client.destroy();
     process.exit(0);

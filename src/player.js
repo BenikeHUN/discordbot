@@ -11,6 +11,7 @@ import {
 } from '@discordjs/voice';
 import { config } from './config.js';
 import { createTrackStream, hydrateTrack, search } from './youtube.js';
+import { getGuildSetting, setGuildSetting } from './store.js';
 
 export const LoopMode = {
   Off: 'off',
@@ -30,7 +31,9 @@ export class GuildPlayer extends EventEmitter {
     this.queue = [];
     this.current = null;
     this.loop = LoopMode.Off;
-    this.volume = config.defaultVolume;
+    // Whatever this server last set, so leaving the channel or restarting the
+    // bot does not quietly hand everyone the default level again.
+    this.volume = getGuildSetting(guild.id, 'volume') ?? config.defaultVolume;
     this.textChannel = null;
     this.voiceChannelId = null;
     this.connection = null;
@@ -239,6 +242,7 @@ export class GuildPlayer extends EventEmitter {
   /** Volume in percent, where 100 is the untouched signal. Applies live. */
   setVolume(percent, { ramp = true } = {}) {
     this.volume = Math.min(Math.max(Math.round(percent), 0), config.maxVolume);
+    setGuildSetting(this.guild.id, 'volume', this.volume);
     this.applyVolume(ramp);
     return this.volume;
   }

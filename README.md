@@ -79,7 +79,7 @@ Every command works both as `.name` and as `/name`.
 | `.queue [page]` | `.q` | List the queue, 10 tracks per page |
 | `.nowplaying` | `.np` | Current track with a progress bar |
 | `.loop <off\|track\|queue>` | `.repeat` | Repeat one track or the whole queue |
-| `.volume [percent]` | `.vol`, `.v` | Show the volume, or set it between 0 and 200. Eases across rather than jumping, works while a track plays and while nothing does, and the level sticks for everything queued afterwards. |
+| `.volume [percent]` | `.vol`, `.v` | Show the volume, or set it between 0 and 200. Eases across rather than jumping, works while a track plays and while nothing does, and is remembered per server across restarts. |
 | `.shuffle` | | Randomise the queue order |
 | `.remove <position>` | `.rm` | Drop one track from the queue |
 | `.leave` | `.dc`, `.disconnect` | Disconnect from voice |
@@ -258,6 +258,7 @@ going above it.
 ```
 bin/                  yt-dlp, downloaded for this platform by npm install
 tmp/                  scratch space yt-dlp unpacks itself into
+data/                 remembered per server settings
 src/
   index.js            client, prefix and slash routing, auto leave
   config.js           .env parsing, binary probing
@@ -267,6 +268,7 @@ src/
   player.js           per guild queue, voice connection, playback state
   youtube.js          yt-dlp metadata and the yt-dlp to ffmpeg stream
   spotify.js          Spotify metadata, bridged to a YouTube search
+  store.js            per server settings, saved to data/guilds.json
   guards.js           shared permission and state checks
   format.js           embeds, durations, progress bar
   commands/           one file per command

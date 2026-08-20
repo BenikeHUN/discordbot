@@ -8,7 +8,12 @@ services:
     environment:
       # Refresh yt-dlp on every start. Set to false for reproducible startups.
       UPDATE_YTDLP_ON_START: "true"
-    # Uncomment both lines to hand YouTube cookies to yt-dlp. The file has to
-    # exist on the host first, otherwise Docker creates a directory instead.
-    # volumes:
-    #   - ./cookies.txt:/app/cookies.txt:ro
+    volumes:
+      # Keeps each server's remembered volume across a recreate.
+      - bot-data:/app/data
+      # Uncomment to hand YouTube cookies to yt-dlp. The file has to exist on
+      # the host first, otherwise Docker creates a directory instead.
+      # - ./cookies.txt:/app/cookies.txt:ro
+
+volumes:
+  bot-data:
