@@ -94,6 +94,7 @@ export const config = {
   maxQueueSize: 500,
   defaultVolume: clampVolume(process.env.DEFAULT_VOLUME, 100),
   maxVolume: clampVolume(process.env.MAX_VOLUME, 200),
+  volumeRampMs: Math.min(Math.max(Number.parseInt(process.env.VOLUME_RAMP_MS ?? '500', 10) || 0, 0), 10_000),
 };
 
 /**

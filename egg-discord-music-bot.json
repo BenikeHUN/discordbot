@@ -100,6 +100,16 @@
             "field_type": "text"
         },
         {
+            "name": "Volume ramp",
+            "description": "Milliseconds a volume change takes to ease across instead of jumping. 0 applies it instantly.",
+            "env_variable": "VOLUME_RAMP_MS",
+            "default_value": "500",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,10000",
+            "field_type": "text"
+        },
+        {
             "name": "Idle timeout",
             "description": "Seconds to stay in a voice channel after the queue runs out or everyone leaves. 0 stays forever.",
             "env_variable": "LEAVE_TIMEOUT",

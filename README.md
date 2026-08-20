@@ -79,7 +79,7 @@ Every command works both as `.name` and as `/name`.
 | `.queue [page]` | `.q` | List the queue, 10 tracks per page |
 | `.nowplaying` | `.np` | Current track with a progress bar |
 | `.loop <off\|track\|queue>` | `.repeat` | Repeat one track or the whole queue |
-| `.volume [percent]` | `.vol`, `.v` | Show the volume, or set it between 0 and 200. Works while a track plays and while nothing does, and the level sticks for everything queued afterwards. |
+| `.volume [percent]` | `.vol`, `.v` | Show the volume, or set it between 0 and 200. Eases across rather than jumping, works while a track plays and while nothing does, and the level sticks for everything queued afterwards. |
 | `.shuffle` | | Randomise the queue order |
 | `.remove <position>` | `.rm` | Drop one track from the queue |
 | `.leave` | `.dc`, `.disconnect` | Disconnect from voice |

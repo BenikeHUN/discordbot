@@ -41,6 +41,7 @@ export class GuildPlayer extends EventEmitter {
     this.leaveTimer = null;
     this.skipping = false;
     this.starting = false;
+    this.volumeRamp = null;
     // Set by /play so the interaction reply is not doubled by an announcement.
     this.suppressAnnounce = false;
 
@@ -180,6 +181,8 @@ export class GuildPlayer extends EventEmitter {
       inlineVolume: true,
       metadata: track,
     });
+    // A new track simply starts at the current level, nothing to ease into.
+    this.stopVolumeRamp();
     resource.volume?.setVolumeLogarithmic(this.volume / 100);
     resource.encoder?.setBitrate(96_000);
 
@@ -232,10 +235,53 @@ export class GuildPlayer extends EventEmitter {
   }
 
   /** Volume in percent, where 100 is the untouched signal. Applies live. */
-  setVolume(percent) {
+  setVolume(percent, { ramp = true } = {}) {
     this.volume = Math.min(Math.max(Math.round(percent), 0), config.maxVolume);
-    this.audioPlayer.state.resource?.volume?.setVolumeLogarithmic(this.volume / 100);
+    this.applyVolume(ramp);
     return this.volume;
+  }
+
+  /**
+   * Eases the playing track to the current level instead of jumping to it. The
+   * steps move along the logarithmic scale rather than the raw gain, so the
+   * change sounds evenly paced rather than rushing through the quiet end.
+   */
+  applyVolume(ramp) {
+    this.stopVolumeRamp();
+
+    const control = this.audioPlayer.state.resource?.volume;
+    if (!control) return;
+
+    const target = this.volume / 100;
+    const start = control.volumeLogarithmic;
+
+    if (!ramp || config.volumeRampMs <= 0 || Math.abs(target - start) < 0.005) {
+      control.setVolumeLogarithmic(target);
+      return;
+    }
+
+    // Driven by elapsed time rather than a tick count, so timer drift changes
+    // how smooth the ramp is but never how long it takes.
+    const startedAt = Date.now();
+
+    this.volumeRamp = setInterval(() => {
+      const live = this.audioPlayer.state.resource?.volume;
+      if (!live) {
+        this.stopVolumeRamp();
+        return;
+      }
+
+      const progress = Math.min((Date.now() - startedAt) / config.volumeRampMs, 1);
+      live.setVolumeLogarithmic(start + (target - start) * progress);
+      if (progress >= 1) this.stopVolumeRamp();
+    }, 25);
+  }
+
+  stopVolumeRamp() {
+    if (this.volumeRamp) {
+      clearInterval(this.volumeRamp);
+      this.volumeRamp = null;
+    }
   }
 
   shuffle() {
@@ -278,6 +324,7 @@ export class GuildPlayer extends EventEmitter {
     if (this.destroyed) return;
     this.destroyed = true;
     this.clearLeaveTimer();
+    this.stopVolumeRamp();
     this.queue.length = 0;
     this.current = null;
     this.stopStream();
