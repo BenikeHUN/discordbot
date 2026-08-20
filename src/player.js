@@ -316,6 +316,13 @@ export class GuildPlayer extends EventEmitter {
     }
   }
 
+  /** Empties the queue and leaves the current track alone. */
+  clearQueue() {
+    const removed = this.queue.length;
+    this.queue.length = 0;
+    return removed;
+  }
+
   shuffle() {
     for (let i = this.queue.length - 1; i > 0; i -= 1) {
       const j = Math.floor(Math.random() * (i + 1));

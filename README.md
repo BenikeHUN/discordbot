@@ -82,6 +82,7 @@ Every command works both as `.name` and as `/name`.
 | `.volume [percent]` | `.vol`, `.v` | Show the volume, or set it between 0 and 200. Eases across rather than jumping, works while a track plays and while nothing does, and is remembered per server across restarts. |
 | `.shuffle` | | Randomise the queue order |
 | `.remove <position>` | `.rm` | Drop one track from the queue |
+| `.clear` | `.cl`, `.empty` | Drop everything from the queue, leaving the current track playing |
 | `.leave` | `.dc`, `.disconnect` | Disconnect from voice |
 | `.help` | `.h`, `.commands` | List everything above |
 
