@@ -86,6 +86,17 @@ Every command works both as `.name` and as `/name`.
 | `.leave` | `.dc`, `.disconnect` | Disconnect from voice |
 | `.help` | `.h`, `.commands` | List everything above |
 
+Every now playing message carries buttons: Previous, Pause and Resume, Skip,
+Stop, a Loop toggle that cycles off, track and queue, volume down and up in
+steps of 10, Shuffle, and Queue. They are drawn from the player's actual state,
+so a button that cannot do anything right now is greyed out, and pressing one
+re-renders the message with what actually happened. Only someone in the bot's
+voice channel can use them.
+
+Previous replays the track before this one and puts the current one back at the
+front of the queue, so pressing it twice walks two tracks back rather than
+toggling between two.
+
 The bot leaves on its own after `LEAVE_TIMEOUT` seconds (120 by default) once
 the queue runs out or everyone leaves the voice channel. Set it to 0 to stay.
 
@@ -273,6 +284,7 @@ src/
   youtube.js          yt-dlp metadata and the yt-dlp to ffmpeg stream
   spotify.js          Spotify metadata, bridged to a YouTube search
   store.js            per server settings, saved to data/guilds.json
+  components.js       now playing buttons, drawn from player state
   guards.js           shared permission and state checks
   format.js           embeds, durations, progress bar
   commands/           one file per command

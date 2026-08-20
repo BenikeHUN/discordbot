@@ -12,7 +12,8 @@ import { commands, findCommand, loadCommands } from './load-commands.js';
 import { deployCommands } from './deploy-commands.js';
 import { CommandError } from './guards.js';
 import { InteractionContext, MessageContext } from './context.js';
-import { allPlayers, getPlayer, playerEvents } from './player.js';
+import { LoopMode, allPlayers, getPlayer, playerEvents } from './player.js';
+import { BUTTON_PREFIX, VOLUME_STEP, playerComponents } from './components.js';
 import { flushSettings, loadSettings } from './store.js';
 import { baseEmbed, trackEmbed } from './format.js';
 
@@ -91,7 +92,78 @@ async function run(command, ctx) {
   }
 }
 
+const LOOP_ORDER = [LoopMode.Off, LoopMode.Track, LoopMode.Queue];
+
+/** The now playing buttons, driven by the same player methods the commands use. */
+async function handleButton(interaction) {
+  const action = interaction.customId.slice(BUTTON_PREFIX.length + 1);
+  const player = getPlayer(interaction.guild);
+
+  const refuse = (message) => interaction.reply({
+    embeds: [baseEmbed(null, message).setColor(0xed4245)],
+    flags: MessageFlags.Ephemeral,
+  }).catch(() => {});
+
+  if (!player || player.destroyed) return refuse('Nothing is playing right now.');
+  if (player.voiceChannelId && interaction.member?.voice?.channelId !== player.voiceChannelId) {
+    return refuse('You have to be in my voice channel to use that.');
+  }
+
+  switch (action) {
+    case 'queue':
+      return run(commands.get('queue'), new InteractionContext(interaction));
+
+    // The track changes a moment later and announces itself with fresh buttons,
+    // so re-rendering this message now would only show a gap.
+    case 'skip':
+      if (!player.skip()) return refuse('Nothing to skip.');
+      return interaction.deferUpdate().catch(() => {});
+
+    case 'previous':
+      if (!player.previous()) return refuse('Nothing to go back to.');
+      return interaction.deferUpdate().catch(() => {});
+
+    case 'playpause':
+      if (!(player.paused ? player.resume() : player.pause())) {
+        return refuse('Nothing is playing right now.');
+      }
+      break;
+
+    case 'stop':
+      player.stop();
+      break;
+
+    case 'loop':
+      player.loop = LOOP_ORDER[(LOOP_ORDER.indexOf(player.loop) + 1) % LOOP_ORDER.length];
+      break;
+
+    case 'volume-up':
+      player.setVolume(player.volume + VOLUME_STEP);
+      break;
+
+    case 'volume-down':
+      player.setVolume(player.volume - VOLUME_STEP);
+      break;
+
+    case 'shuffle':
+      if (player.queue.length < 2) return refuse('There is not enough in the queue to shuffle.');
+      player.shuffle();
+      break;
+
+    default:
+      return interaction.deferUpdate().catch(() => {});
+  }
+
+  return interaction.update({ components: playerComponents(player) }).catch(() => {});
+}
+
 client.on(Events.InteractionCreate, async (interaction) => {
+  if (interaction.isButton()) {
+    if (!interaction.customId.startsWith(`${BUTTON_PREFIX}:`)) return;
+    await handleButton(interaction);
+    return;
+  }
+
   if (interaction.isAutocomplete()) {
     const command = commands.get(interaction.commandName);
     if (command?.autocomplete) {
@@ -196,7 +268,10 @@ playerEvents.on('create', (player) => {
       player.suppressAnnounce = false;
       return;
     }
-    player.textChannel?.send({ embeds: [trackEmbed('Now playing', track)] }).catch(() => {});
+    player.textChannel?.send({
+      embeds: [trackEmbed('Now playing', track)],
+      components: playerComponents(player),
+    }).catch(() => {});
   });
 
   player.on('error', (error, track) => {

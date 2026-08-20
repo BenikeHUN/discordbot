@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import { CommandError } from '../guards.js';
 import { getPlayer } from '../player.js';
 import { progressBar, trackEmbed } from '../format.js';
+import { playerComponents } from '../components.js';
 
 export const data = new SlashCommandBuilder()
   .setName('nowplaying')
@@ -19,5 +20,5 @@ export async function execute(ctx) {
     .addFields({ name: 'Progress', value: `\`${progressBar(player.elapsed, track.duration)}\`` })
     .setFooter({ text: `Volume: ${player.volume}%` });
 
-  await ctx.reply({ embeds: [embed] });
+  await ctx.reply({ embeds: [embed], components: playerComponents(player) });
 }

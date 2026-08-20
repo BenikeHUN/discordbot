@@ -3,6 +3,7 @@ import { getOrCreatePlayer } from '../player.js';
 import { resolveQuery, search } from '../youtube.js';
 import { requireVoiceChannel } from '../guards.js';
 import { baseEmbed, formatDuration, totalDuration, trackEmbed } from '../format.js';
+import { playerComponents } from '../components.js';
 
 export const data = new SlashCommandBuilder()
   .setName('play')
@@ -63,5 +64,8 @@ export async function execute(ctx) {
 
   const track = result.tracks[0];
   const title = wasIdle ? 'Now playing' : `Queued at position ${player.queue.length}`;
-  await ctx.reply({ embeds: [trackEmbed(title, track)] });
+  await ctx.reply({
+    embeds: [trackEmbed(title, track)],
+    components: wasIdle ? playerComponents(player) : [],
+  });
 }

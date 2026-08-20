@@ -29,6 +29,9 @@ export class GuildPlayer extends EventEmitter {
     super();
     this.guild = guild;
     this.queue = [];
+    // Tracks that already finished, newest last, so the previous button has
+    // something to go back to.
+    this.history = [];
     this.current = null;
     this.loop = LoopMode.Off;
     // Whatever this server last set, so leaving the channel or restarting the
@@ -45,6 +48,7 @@ export class GuildPlayer extends EventEmitter {
     this.skipping = false;
     this.starting = false;
     this.volumeRamp = null;
+    this.goingBack = false;
     // Set by /play so the interaction reply is not doubled by an announcement.
     this.suppressAnnounce = false;
 
@@ -204,19 +208,39 @@ export class GuildPlayer extends EventEmitter {
     this.current = null;
     this.stopStream();
 
-    if (finished && !this.skipping) {
-      if (this.loop === LoopMode.Track) this.queue.unshift(finished);
+    // Stepping back has already put the tracks where they belong, so neither
+    // the history nor the loop should touch them again.
+    if (finished && !this.goingBack) {
+      this.history.push(finished);
+      if (this.history.length > 50) this.history.shift();
+
+      if (!this.skipping && this.loop === LoopMode.Track) this.queue.unshift(finished);
       else if (this.loop === LoopMode.Queue) this.queue.push(finished);
-    } else if (finished && this.skipping && this.loop === LoopMode.Queue) {
-      this.queue.push(finished);
     }
 
     this.skipping = false;
+    this.goingBack = false;
     this.playNext().catch((error) => this.emit('error', error, finished));
   }
 
   skip() {
     if (!this.current) return false;
+    this.skipping = true;
+    this.audioPlayer.stop(true);
+    return true;
+  }
+
+  /** Puts the current track back in the queue and replays the one before it. */
+  previous() {
+    const earlier = this.history.pop();
+    if (!earlier) return false;
+
+    if (this.current) this.queue.unshift(this.current);
+    this.queue.unshift(earlier);
+    // A track replayed from history is fetched again, so it starts from zero.
+    earlier.streamUrl = earlier.source === 'spotify' ? null : earlier.streamUrl;
+
+    this.goingBack = true;
     this.skipping = true;
     this.audioPlayer.stop(true);
     return true;
@@ -364,6 +388,7 @@ export class GuildPlayer extends EventEmitter {
     this.destroyed = true;
     this.clearLeaveTimer();
     this.stopVolumeRamp();
+    this.history.length = 0;
     this.queue.length = 0;
     this.current = null;
     this.stopStream();
