@@ -33,12 +33,18 @@ export class InteractionContext extends CommandContext {
     this.interaction = interaction;
   }
 
+  // A button interaction carries no options at all, and buttons reuse the same
+  // command implementations, so a missing option reads as "not given".
   getString(name, required = false) {
-    return this.interaction.options.getString(name, required);
+    const value = this.interaction.options?.getString(name) ?? null;
+    if (required && value === null) throw new Error(`Missing argument: ${name}`);
+    return value;
   }
 
   getInteger(name, required = false) {
-    return this.interaction.options.getInteger(name, required);
+    const value = this.interaction.options?.getInteger(name) ?? null;
+    if (required && value === null) throw new Error(`Missing argument: ${name}`);
+    return value;
   }
 
   async defer() {

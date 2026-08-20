@@ -246,6 +246,14 @@ once need it twice over. The bot points yt-dlp at `tmp/` beside the code
 instead, so this should not come up; if it does, check that the server has
 free disk quota there.
 
+**The server's disk keeps growing with every reinstall.** Two things caused
+that. The native Opus build left around fifty megabytes of object files and
+bundled sources behind, and npm's download cache lives in the server directory
+and is never cleared, so it grew on every install. Both are cleaned up now, on
+start as well as after an install, so a restart reclaims the space without a
+reinstall. What remains is roughly 115 MB of dependencies, of which ffmpeg is
+80 MB, plus a 40 MB yt-dlp.
+
 **HTTP 403, "Requested format is not available", or playback that used to
 work and now does not.** yt-dlp has fallen behind YouTube's player again. Pull
 the newest nightly:
