@@ -1,0 +1,8 @@
+node_modules/
+bin/
+.env
+cookies.txt
+npm-debug.log*
+
+# Upload bundles for panels, rebuilt on demand
+*.zip

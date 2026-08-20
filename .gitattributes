@@ -1,0 +1,6 @@
+# Shell scripts and the Docker entrypoint run inside Linux containers, so they
+# must keep LF endings no matter which platform commits them.
+* text=auto eol=lf
+*.sh text eol=lf
+*.png binary
+*.jpg binary

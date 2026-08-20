@@ -1,0 +1,163 @@
+{
+    "_comment": "Discord music bot playing YouTube, SoundCloud and anything else yt-dlp reaches. The startup command must remain a single command: the yolks entrypoint runs it through 'exec env', with no shell to interpret operators or control flow.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-08-20T00:00:00+00:00",
+    "name": "Discord Music Bot",
+    "author": "galfi.benedek@gmail.com",
+    "description": "Discord music bot on Node.js. Plays YouTube and SoundCloud natively through yt-dlp, bridges Spotify links to a YouTube match, and supports both prefixed text commands and slash commands. yt-dlp is fetched as a self contained binary matching the container's libc, so no Python is needed.",
+    "features": null,
+    "docker_images": {
+        "Node.js 24": "ghcr.io/parkervcp/yolks:nodejs_24",
+        "Node.js 22": "ghcr.io/parkervcp/yolks:nodejs_22"
+    },
+    "file_denylist": [],
+    "startup": "sh scripts/start.sh",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Logged in as\"}",
+        "logs": "{}",
+        "stop": "^^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Pterodactyl installation script for the Discord music bot.\nset -e\n\n# The Node.js yolks images already ship git and curl. Only reach for a package\n# manager if this egg was pointed at a leaner container, and cope with both the\n# Debian and the Alpine based images.\nif ! command -v git >/dev/null 2>&1; then\n    if command -v apt-get >/dev/null 2>&1; then\n        apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates\n    elif command -v apk >/dev/null 2>&1; then\n        apk add --no-cache git curl\n    fi\nfi\n\nmkdir -p /mnt/server\ncd /mnt/server\n\nif [ -n \"${GIT_REPO}\" ]; then\n    echo \"Cloning ${GIT_REPO}\"\n    rm -rf /tmp/botsrc\n    if [ -n \"${GIT_BRANCH}\" ]; then\n        git clone --depth 1 --branch \"${GIT_BRANCH}\" \"${GIT_REPO}\" /tmp/botsrc\n    else\n        git clone --depth 1 \"${GIT_REPO}\" /tmp/botsrc\n    fi\n    rm -rf /tmp/botsrc/.git\n    cp -a /tmp/botsrc/. /mnt/server/\n    rm -rf /tmp/botsrc\nelif [ -f /mnt/server/package.json ]; then\n    echo \"No GIT_REPO set, using the files already in the server directory.\"\nelse\n    echo \"Nothing to install.\"\n    echo \"Either set the GIT_REPO variable, or upload the bot files (package.json, src/, scripts/) first and reinstall.\"\n    exit 1\nfi\n\nif [ ! -f /mnt/server/package.json ]; then\n    echo \"package.json is missing after the copy. Check the repository or the uploaded files.\"\n    exit 1\nfi\n\necho \"Installing dependencies\"\nnpm install --no-audit --no-fund\n\necho \"Installation done.\"\n",
+            "container": "ghcr.io/parkervcp/yolks:nodejs_24",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Bot token",
+            "description": "Discord Developer Portal, Bot, Reset Token. Keep it secret.",
+            "env_variable": "DISCORD_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Application ID",
+            "description": "Developer Portal, General Information, Application ID. Only needed for slash commands.",
+            "env_variable": "CLIENT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Command prefix",
+            "description": "Prefix for text commands, for example a dot gives .play",
+            "env_variable": "PREFIX",
+            "default_value": ".",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:5",
+            "field_type": "text"
+        },
+        {
+            "name": "Register slash commands",
+            "description": "Set to 1 to register slash commands on every start. Text commands work without this.",
+            "env_variable": "DEPLOY_COMMANDS",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Slash command server ID",
+            "description": "Register slash commands on this one server so they appear instantly. Empty registers globally, which takes up to an hour.",
+            "env_variable": "GUILD_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Default volume",
+            "description": "Volume in percent every new player starts at.",
+            "env_variable": "DEFAULT_VOLUME",
+            "default_value": "100",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,1000",
+            "field_type": "text"
+        },
+        {
+            "name": "Maximum volume",
+            "description": "Ceiling users can set with the volume command. Above 100 amplifies and can distort.",
+            "env_variable": "MAX_VOLUME",
+            "default_value": "200",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,1000",
+            "field_type": "text"
+        },
+        {
+            "name": "Idle timeout",
+            "description": "Seconds to stay in a voice channel after the queue runs out or everyone leaves. 0 stays forever.",
+            "env_variable": "LEAVE_TIMEOUT",
+            "default_value": "120",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,86400",
+            "field_type": "text"
+        },
+        {
+            "name": "Spotify client ID",
+            "description": "Optional. Only needed to accept Spotify links. Free app at developer.spotify.com/dashboard.",
+            "env_variable": "SPOTIFY_CLIENT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "Spotify client secret",
+            "description": "Optional. Pairs with the Spotify client ID.",
+            "env_variable": "SPOTIFY_CLIENT_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:64",
+            "field_type": "text"
+        },
+        {
+            "name": "yt-dlp cookies file",
+            "description": "Optional. Path to a Netscape format cookies.txt, for age restricted videos or bot checks.",
+            "env_variable": "YTDLP_COOKIES",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "Optional. Install pulls the bot from here. Leave empty to use files you upload yourself.",
+            "env_variable": "GIT_REPO",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "Optional. Branch to clone when a repository is set.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        }
+    ]
+}

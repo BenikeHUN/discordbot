@@ -1,0 +1,14 @@
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    # Reaps the ffmpeg and yt-dlp processes, and forwards SIGTERM to node.
+    init: true
+    env_file: .env
+    environment:
+      # Refresh yt-dlp on every start. Set to false for reproducible startups.
+      UPDATE_YTDLP_ON_START: "true"
+    # Uncomment both lines to hand YouTube cookies to yt-dlp. The file has to
+    # exist on the host first, otherwise Docker creates a directory instead.
+    # volumes:
+    #   - ./cookies.txt:/app/cookies.txt:ro
