@@ -62,24 +62,13 @@ async function describeFailure(response) {
     // No JSON body, the status has to speak for itself.
   }
 
-  // Spotify closed its editorial and algorithmic playlists to third party apps
-  // at the end of 2024. Those are the ones with an id starting 37i9dQ, and no
-  // amount of correct credentials will open them.
-  if (response.status === 403 || response.status === 404) {
-    const closed = response.url.includes('37i9dQ');
-    if (closed) {
-      return 'Spotify no longer lets apps read the playlists it puts together '
-        + 'itself, such as the daily mixes and the editorial charts. '
-        + 'A playlist made by a person works, so does an album or a track link.';
-    }
-  }
-
   if (response.status === 403 || response.status === 404) {
     if (response.url.includes('/playlists/')) return PLAYLISTS_CLOSED;
 
     return `Spotify refused that link${detail ? `: ${detail}` : ''}. `
       + 'Check that it is public and still exists.';
   }
+
   if (response.status === 429) return 'Spotify is rate limiting the bot. Try again shortly.';
 
   return `Spotify request failed with ${response.status}${detail ? `: ${detail}` : ''}.`;

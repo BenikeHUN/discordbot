@@ -182,16 +182,10 @@ privacy was never what was being refused. Album and track links still work, and
 YouTube and SoundCloud playlists work normally.
 
 When a Spotify link is refused, `node scripts/spotify-check.js <playlist url>`
-says why. It reads a known public track, a known public album and a known
-public playlist alongside yours, which separates bad credentials from an app
-Spotify has restricted from a playlist that is not public. Spotify answers a
-refusal with a bare "Forbidden" often enough that one failed request tells you
-nothing on its own.
-
-Playlist links are the exception, and not one the bot can fix. Since February
-2026 Spotify hands a playlist's contents only to a token belonging to the
-person who owns it; an application token gets the name and nothing else. Album
-and track links are unaffected.
+says why. It reads a known public track and album, then the playlist's metadata
+and its contents separately, which is what distinguishes bad credentials from a
+restricted app from the February 2026 change. Spotify answers a refusal with a
+bare "Forbidden" often enough that one failed request tells you nothing.
 
 It is off unless you set `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in
 `.env` (a free app at https://developer.spotify.com/dashboard gives you both).

@@ -71,22 +71,26 @@ async function check(label, path) {
 
 const track = await check('known public track', `/tracks/${KNOWN_TRACK}`);
 const album = await check('known public album', `/albums/${KNOWN_ALBUM}`);
-const known = await check('known public playlist', `/playlists/${KNOWN_PLAYLIST}?fields=name`);
-const mine = await check('your playlist', `/playlists/${idFrom(process.argv[2], KNOWN_PLAYLIST)}?fields=name`);
+const id = idFrom(process.argv[2], KNOWN_PLAYLIST);
 
-console.log('\nWhat that means:');
+const meta = await check('your playlist, metadata', `/playlists/${id}?fields=name`);
+const items = await check('your playlist, contents', `/playlists/${id}/items?limit=1`);
+const legacy = await check('same, removed endpoint', `/playlists/${id}/tracks?limit=1`);
+
+console.log('');
+console.log('What that means:');
 if (!track && !album) {
   console.log('  Nothing works. The app itself is restricted, or the credentials belong');
   console.log('  to an app that was removed. Check it on developer.spotify.com/dashboard.');
-} else if (!known && !mine) {
-  console.log('  Tracks and albums work, no playlist does, not even a public one that is');
-  console.log('  not yours. Spotify is refusing playlist reads to this app entirely, and');
-  console.log('  no setting on your own playlist will change that.');
-} else if (known && !mine) {
-  console.log('  Public playlists work but yours does not, so it is your playlist that is');
-  console.log('  not public. In Spotify, three dots, then Add to profile or Public.');
+} else if (!items && !legacy) {
+  console.log('  Tracks and albums work, playlist contents do not. Since February 2026');
+  console.log('  Spotify returns a playlist to an application token as metadata only.');
+  console.log('  The contents go to a login belonging to the owner and to nobody else.');
+  console.log('  Nothing about the playlist settings changes this, and the bot cannot');
+  console.log('  work around it. Use an album or track link, or a YouTube playlist.');
+  if (meta) console.log('  The metadata call succeeding above is exactly that behaviour.');
 } else {
-  console.log('  Everything the bot needs works. If playback still fails, the problem is');
-  console.log('  no longer with Spotify access.');
+  console.log('  Playlist contents came back, so this app can still read them. If a');
+  console.log('  playlist link still fails, the problem is elsewhere.');
 }
 process.exit(0);
