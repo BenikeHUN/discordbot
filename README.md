@@ -122,10 +122,20 @@ To use cookies, put `cookies.txt` next to the compose file, uncomment the
 Import `egg-discord-music-bot.json` in the panel under Admin, Nests, Import
 Egg, then create a server from it.
 
-The egg is built around what those containers actually are. The Node.js yolks
-images are Alpine, so a glibc yt-dlp build would not run and there is no
-python3 for the zipapp one; the install step downloads the musl build instead.
-Nothing needs to compile, so the missing toolchain does not matter either.
+The egg is built around what those containers actually are, and three details
+matter if you edit it:
+
+- The startup command has to stay a single command. The yolks entrypoint runs
+  it through `exec env` with no shell, so `if`, `;` and the rest are syntax
+  errors. Everything that has to happen before the bot starts lives in
+  `scripts/start.sh` instead.
+- The installation container has to run as root. The yolks runtime images
+  default to the `container` user, which cannot even read the install script
+  Wings writes, so the install step uses a plain `node` image.
+- That node image has to match the runtime image's Debian release. The native
+  Opus encoder is resolved by glibc version, so a build produced on a different
+  release will not load, and playback quietly drops to the slower pure
+  JavaScript encoder.
 
 Two ways to get the code in:
 
