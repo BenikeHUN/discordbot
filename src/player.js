@@ -181,13 +181,15 @@ export class GuildPlayer extends EventEmitter {
       inlineVolume: true,
       metadata: track,
     });
-    // A new track simply starts at the current level, nothing to ease into.
     this.stopVolumeRamp();
-    resource.volume?.setVolumeLogarithmic(this.volume / 100);
+    // Set outright first so the very first samples are never at the old level,
+    // then ease up once the resource is the one the player is subscribed to.
+    resource.volume?.setVolumeLogarithmic(this.openingVolume() / 100);
     resource.encoder?.setBitrate(96_000);
 
     this.startedAt = Date.now();
     this.audioPlayer.play(resource);
+    this.fadeIn(resource);
     this.starting = false;
     this.emit('trackStart', track);
   }
@@ -242,37 +244,63 @@ export class GuildPlayer extends EventEmitter {
   }
 
   /**
-   * Eases the playing track to the current level instead of jumping to it. The
-   * steps move along the logarithmic scale rather than the raw gain, so the
-   * change sounds evenly paced rather than rushing through the quiet end.
+   * Level a track opens at. A loud setting is eased up to rather than dropped
+   * on the listener, so a track does not burst in at full tilt.
    */
+  openingVolume() {
+    if (config.fadeInMs <= 0) return this.volume;
+    return Math.min(config.fadeInFrom, this.volume);
+  }
+
+  /** Eases a freshly started track up to the set level, when it opened below it. */
+  fadeIn(resource) {
+    const control = resource.volume;
+    if (!control) return;
+    this.rampVolume(control, this.openingVolume() / 100, this.volume / 100, config.fadeInMs);
+  }
+
+  /** Eases the playing track to the current level instead of jumping to it. */
   applyVolume(ramp) {
+    const control = this.audioPlayer.state.resource?.volume;
+    if (!control) {
+      this.stopVolumeRamp();
+      return;
+    }
+    this.rampVolume(
+      control,
+      control.volumeLogarithmic,
+      this.volume / 100,
+      ramp ? config.volumeRampMs : 0,
+    );
+  }
+
+  /**
+   * Moves one volume control from start to target over a duration. The steps
+   * follow the logarithmic scale rather than the raw gain, so the change sounds
+   * evenly paced rather than rushing through the quiet end, and progress comes
+   * from elapsed time so timer drift changes smoothness, never duration.
+   */
+  rampVolume(control, start, target, durationMs) {
     this.stopVolumeRamp();
 
-    const control = this.audioPlayer.state.resource?.volume;
-    if (!control) return;
-
-    const target = this.volume / 100;
-    const start = control.volumeLogarithmic;
-
-    if (!ramp || config.volumeRampMs <= 0 || Math.abs(target - start) < 0.005) {
+    if (durationMs <= 0 || Math.abs(target - start) < 0.005) {
       control.setVolumeLogarithmic(target);
       return;
     }
 
-    // Driven by elapsed time rather than a tick count, so timer drift changes
-    // how smooth the ramp is but never how long it takes.
+    control.setVolumeLogarithmic(start);
     const startedAt = Date.now();
 
     this.volumeRamp = setInterval(() => {
-      const live = this.audioPlayer.state.resource?.volume;
-      if (!live) {
+      // A track change swaps the resource, and the old ramp has nothing to say
+      // about the new one.
+      if (this.audioPlayer.state.resource?.volume !== control) {
         this.stopVolumeRamp();
         return;
       }
 
-      const progress = Math.min((Date.now() - startedAt) / config.volumeRampMs, 1);
-      live.setVolumeLogarithmic(start + (target - start) * progress);
+      const progress = Math.min((Date.now() - startedAt) / durationMs, 1);
+      control.setVolumeLogarithmic(start + (target - start) * progress);
       if (progress >= 1) this.stopVolumeRamp();
     }, 25);
   }

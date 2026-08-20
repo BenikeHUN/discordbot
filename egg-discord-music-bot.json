@@ -110,6 +110,26 @@
             "field_type": "text"
         },
         {
+            "name": "Fade in length",
+            "description": "Milliseconds a track takes to ease up to the set volume when it starts. 0 turns the fade off.",
+            "env_variable": "FADE_IN_MS",
+            "default_value": "1500",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,30000",
+            "field_type": "text"
+        },
+        {
+            "name": "Fade in from",
+            "description": "Percent a track opens at before easing up. Only applies when the set volume is higher than this.",
+            "env_variable": "FADE_IN_FROM",
+            "default_value": "50",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:0,1000",
+            "field_type": "text"
+        },
+        {
             "name": "Idle timeout",
             "description": "Seconds to stay in a voice channel after the queue runs out or everyone leaves. 0 stays forever.",
             "env_variable": "LEAVE_TIMEOUT",

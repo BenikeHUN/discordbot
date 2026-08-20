@@ -95,6 +95,8 @@ export const config = {
   defaultVolume: clampVolume(process.env.DEFAULT_VOLUME, 100),
   maxVolume: clampVolume(process.env.MAX_VOLUME, 200),
   volumeRampMs: Math.min(Math.max(Number.parseInt(process.env.VOLUME_RAMP_MS ?? '500', 10) || 0, 0), 10_000),
+  fadeInMs: Math.min(Math.max(Number.parseInt(process.env.FADE_IN_MS ?? '1500', 10) || 0, 0), 30_000),
+  fadeInFrom: clampVolume(process.env.FADE_IN_FROM, 50),
 };
 
 /**

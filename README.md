@@ -188,6 +188,13 @@ from the URL, which is why SoundCloud and the rest need no extra code. The raw 4
 goes to `@discordjs/voice` as `StreamType.Raw` with `inlineVolume`, which scales
 the samples and encodes them to Opus at 96 kbps.
 
+Volume changes move gradually rather than in one step, and a track set above
+`FADE_IN_FROM` opens at that level and eases up to the full one, so a loud
+setting does not burst in on whoever is listening. Both movements step along
+the logarithmic scale rather than the raw gain, since the ear does not hear
+gain linearly, and both are driven by elapsed time so timer drift affects how
+smooth they are but never how long they take.
+
 PCM rather than letting ffmpeg emit Opus directly, because volume has to be
 adjustable while a track is playing, and that means touching the samples before
 they are encoded. Encoding uses `@discordjs/opus` when it is available and
