@@ -50,7 +50,12 @@ export async function execute(ctx) {
   const added = player.enqueue(result.tracks);
   if (added === 0) throw new Error('The queue is full.');
 
-  if (wasIdle) player.suppressAnnounce = true;
+  // A single track reply already reads "Now playing", so the announcement
+  // would repeat it. A playlist reply names the playlist rather than the
+  // track, so the announcement is left to post, and it carries the controls.
+  const single = result.source !== 'playlist';
+  if (wasIdle && single) player.suppressAnnounce = true;
+
   await player.start();
 
   if (result.source === 'playlist') {
