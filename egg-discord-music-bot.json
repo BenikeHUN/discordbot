@@ -103,7 +103,7 @@
             "name": "Volume ramp",
             "description": "Milliseconds a volume change takes to ease across instead of jumping. 0 applies it instantly.",
             "env_variable": "VOLUME_RAMP_MS",
-            "default_value": "500",
+            "default_value": "1500",
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|integer|between:0,10000",
