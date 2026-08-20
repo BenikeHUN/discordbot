@@ -9,7 +9,8 @@
     "start": "node src/index.js",
     "deploy": "node src/deploy-commands.js",
     "setup-ytdlp": "node scripts/setup-ytdlp.js",
-    "postinstall": "node scripts/setup-ytdlp.js"
+    "postinstall": "node scripts/setup-ytdlp.js",
+    "spotify-check": "node scripts/spotify-check.js"
   },
   "engines": {
     "node": ">=18.17"

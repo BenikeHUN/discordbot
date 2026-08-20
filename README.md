@@ -173,6 +173,13 @@ link is read for metadata, and the audio comes from the matching YouTube
 video. Convenient for pasting a playlist your friends already share, but the
 sound quality and the match are YouTube's, not Spotify's.
 
+When a Spotify link is refused, `node scripts/spotify-check.js <playlist url>`
+says why. It reads a known public track, a known public album and a known
+public playlist alongside yours, which separates bad credentials from an app
+Spotify has restricted from a playlist that is not public. Spotify answers a
+refusal with a bare "Forbidden" often enough that one failed request tells you
+nothing on its own.
+
 A playlist has to be public for the bot to read it, and that is a stricter
 condition than it looks: a playlist whose link opens fine in a browser can
 still be non public as far as the API is concerned. In Spotify, open the
