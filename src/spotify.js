@@ -136,7 +136,7 @@ function toTrack(raw, requestedBy, fallbackImage = null) {
   };
 }
 
-export async function resolveSpotify(link, requestedBy, limit) {
+async function fromApi(kind, id, requestedBy, limit) {
   if (!isConfigured()) {
     throw new Error(
       'Spotify links need SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET in .env. '
@@ -144,14 +144,12 @@ export async function resolveSpotify(link, requestedBy, limit) {
     );
   }
 
-  const [, kind, id] = link.match(LINK_RE);
-
-  if (kind.toLowerCase() === 'track') {
+  if (kind === 'track') {
     const raw = await api(`/tracks/${id}`);
     return { playlistTitle: null, tracks: [toTrack(raw, requestedBy)] };
   }
 
-  if (kind.toLowerCase() === 'album') {
+  if (kind === 'album') {
     const album = await api(`/albums/${id}`);
     const cover = album.images?.[0]?.url ?? null;
     const items = await collect(`/albums/${id}/tracks?limit=50`, limit);
@@ -177,4 +175,94 @@ export async function resolveSpotify(link, requestedBy, limit) {
   // for a playlist it does not own.
   if (tracks.length === 0) throw new Error(PLAYLISTS_CLOSED);
   return { playlistTitle: playlist.name || 'Spotify playlist', tracks };
+}
+
+const EMBED = 'https://open.spotify.com/embed';
+const NEXT_DATA = /<script id="__NEXT_DATA__" type="application\/json">(.+?)<\/script>/s;
+
+/**
+ * The page Spotify serves for embedding carries the whole track list as JSON,
+ * with no credentials involved. It is what the Web API stopped handing out in
+ * February 2026, and it covers the editorial playlists the API never allowed.
+ * Undocumented, so the official API stays behind it as a fallback.
+ */
+async function fetchEntity(kind, id) {
+  const response = await fetch(`${EMBED}/${kind}/${id}`, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; discord-music-bot)',
+      'Accept-Language': 'en',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(response.status === 404
+      ? 'That Spotify link does not exist, or it is private.'
+      : `Spotify returned ${response.status} for that link.`);
+  }
+
+  const match = (await response.text()).match(NEXT_DATA);
+  if (!match) throw new Error('Could not read that Spotify page.');
+
+  const entity = JSON.parse(match[1])?.props?.pageProps?.state?.data?.entity;
+  if (!entity) throw new Error('That Spotify link has nothing playable behind it.');
+  return entity;
+}
+
+function coverOf(entity) {
+  return entity?.coverArt?.sources?.at(-1)?.url
+    ?? entity?.visualIdentity?.image?.at(-1)?.url
+    ?? null;
+}
+
+function trackFromEmbed(raw, requestedBy, cover) {
+  const id = String(raw.uri ?? '').split(':').pop() || raw.id || null;
+  const title = raw.title || raw.name || 'Unknown title';
+  const artists = raw.subtitle
+    || (raw.artists ?? []).map((artist) => artist.name).filter(Boolean).join(', ')
+    || 'Unknown artist';
+
+  return {
+    id,
+    url: id ? `https://open.spotify.com/track/${id}` : null,
+    title,
+    author: artists,
+    duration: Number.isFinite(raw.duration) ? Math.round(raw.duration / 1000) : null,
+    isLive: false,
+    thumbnail: coverOf(raw) ?? cover,
+    source: 'spotify',
+    searchQuery: `${artists} ${title}`,
+    streamUrl: null,
+    requestedBy,
+  };
+}
+
+async function fromEmbed(kind, id, requestedBy, limit) {
+  const entity = await fetchEntity(kind, id);
+
+  if (kind === 'track') {
+    return { playlistTitle: null, tracks: [trackFromEmbed(entity, requestedBy, coverOf(entity))] };
+  }
+
+  const cover = coverOf(entity);
+  const tracks = (entity.trackList ?? [])
+    .filter((raw) => raw && (raw.uri || raw.id))
+    .slice(0, limit)
+    .map((raw) => trackFromEmbed(raw, requestedBy, cover));
+
+  if (tracks.length === 0) throw new Error('That Spotify link has no playable tracks.');
+  return { playlistTitle: entity.name || 'Spotify', tracks };
+}
+
+export async function resolveSpotify(link, requestedBy, limit) {
+  const [, rawKind, id] = link.match(LINK_RE);
+  const kind = rawKind.toLowerCase();
+
+  try {
+    return await fromEmbed(kind, id, requestedBy, limit);
+  } catch (error) {
+    // The official API only helps where credentials exist, and it can read
+    // less than the embed does, so it is a fallback rather than the first try.
+    if (!isConfigured()) throw error;
+    return fromApi(kind, id, requestedBy, limit);
+  }
 }

@@ -184,32 +184,24 @@ and direct audio URLs included. Nothing in the bot is YouTube specific beyond
 the default search.
 
 **Spotify is a bridge, not a source.** Spotify does not allow third parties to
-stream its audio; the Web API only exposes 30 second previews. So a Spotify
-link is read for metadata, and the audio comes from the matching YouTube
-video. Convenient for pasting a playlist your friends already share, but the
-sound quality and the match are YouTube's, not Spotify's.
+stream its audio. So a Spotify link is read for its track list, and the audio
+comes from the matching YouTube video. Convenient for pasting a playlist your
+friends already share, but the sound quality and the match are YouTube's.
 
-**Spotify playlist links no longer work, and cannot be made to.** In February
-2026 Spotify changed playlist reads: an application token now receives a
-playlist's metadata and not its contents, which go only to a login belonging to
-the owner. It also removed `GET /playlists/{id}/tracks` in favour of
-`/playlists/{id}/items`. Making a playlist public does not help, because
-privacy was never what was being refused. Album and track links still work, and
-YouTube and SoundCloud playlists work normally.
+Track lists come from the page Spotify serves for embedding, which carries the
+whole list as JSON and needs no credentials, so tracks, albums and playlists
+all work out of the box, including the editorial playlists Spotify assembles
+itself. That page is undocumented, so `SPOTIFY_CLIENT_ID` and
+`SPOTIFY_CLIENT_SECRET` remain as a fallback if it ever changes shape, and
+`node scripts/spotify-check.js <url>` reports what that fallback can reach.
 
-When a Spotify link is refused, `node scripts/spotify-check.js <playlist url>`
-says why. It reads a known public track and album, then the playlist's metadata
-and its contents separately, which is what distinguishes bad credentials from a
-restricted app from the February 2026 change. Spotify answers a refusal with a
-bare "Forbidden" often enough that one failed request tells you nothing.
-
-It is off unless you set `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in
-`.env` (a free app at https://developer.spotify.com/dashboard gives you both).
-Without them the bot just tells the user Spotify is not configured.
+The official Web API is the fallback rather than the first choice because it
+now reads less: since February 2026 an application token receives a playlist's
+metadata and not its contents, which go only to a login belonging to the owner.
 
 The YouTube lookup for a Spotify track happens when the track is about to
-play, not when it is queued, so pasting a 200 track playlist costs one API call
-rather than 200 searches.
+play, not when it is queued, so pasting a 200 track playlist costs one page
+fetch rather than 200 searches.
 
 ## How playback works
 
@@ -295,7 +287,7 @@ src/
   load-commands.js    command and alias registry
   player.js           per guild queue, voice connection, playback state
   youtube.js          yt-dlp metadata and the yt-dlp to ffmpeg stream
-  spotify.js          Spotify metadata, bridged to a YouTube search
+  spotify.js          Spotify track lists, bridged to a YouTube search
   store.js            per server settings, saved to data/guilds.json
   components.js       now playing buttons, drawn from player state
   now-playing.js      the one message per guild, edited or reposted
