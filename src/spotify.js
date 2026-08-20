@@ -66,13 +66,22 @@ async function describeFailure(response) {
     }
   }
 
-  if (response.status === 403) {
-    return `Spotify refused the request${detail ? `: ${detail}` : ''}. `
-      + 'If the link is a private or collaborative playlist, the bot cannot see it. '
-      + 'Check also that the app on developer.spotify.com is not restricted.';
-  }
+  if (response.status === 403 || response.status === 404) {
+    const playlist = response.url.includes('/playlists/');
+    if (playlist) {
+      // Opening in a browser proves nothing here. A link stays shareable while
+      // the playlist is still not public in the sense the API cares about, and
+      // an app token only ever sees public ones.
+      return 'Spotify will not hand that playlist to an app. A link that opens '
+        + 'in a browser is not enough: the playlist itself has to be public. '
+        + 'Open it in Spotify, and under the three dots choose Add to profile, '
+        + 'or turn on Public. Collaborative playlists stay off limits either way.'
+        + (detail ? ` Spotify said: ${detail}` : '');
+    }
 
-  if (response.status === 404) return 'That Spotify link does not exist, or it is private.';
+    return `Spotify refused that link${detail ? `: ${detail}` : ''}. `
+      + 'Check that it is public and still exists.';
+  }
   if (response.status === 429) return 'Spotify is rate limiting the bot. Try again shortly.';
 
   return `Spotify request failed with ${response.status}${detail ? `: ${detail}` : ''}.`;

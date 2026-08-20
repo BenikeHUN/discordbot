@@ -172,6 +172,12 @@ link is read for metadata, and the audio comes from the matching YouTube
 video. Convenient for pasting a playlist your friends already share, but the
 sound quality and the match are YouTube's, not Spotify's.
 
+A playlist has to be public for the bot to read it, and that is a stricter
+condition than it looks: a playlist whose link opens fine in a browser can
+still be non public as far as the API is concerned. In Spotify, open the
+playlist, and under the three dots choose Add to profile, or turn on Public.
+Collaborative playlists cannot be read at all.
+
 Spotify closed its own editorial and algorithmic playlists to third party apps
 at the end of 2024. Those are the ones with an id starting `37i9dQ`, the daily
 mixes and the charts Spotify assembles itself, and no credentials will open
