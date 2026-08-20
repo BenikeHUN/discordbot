@@ -172,6 +172,11 @@ link is read for metadata, and the audio comes from the matching YouTube
 video. Convenient for pasting a playlist your friends already share, but the
 sound quality and the match are YouTube's, not Spotify's.
 
+Spotify closed its own editorial and algorithmic playlists to third party apps
+at the end of 2024. Those are the ones with an id starting `37i9dQ`, the daily
+mixes and the charts Spotify assembles itself, and no credentials will open
+them. Playlists made by people work, as do albums and single tracks.
+
 It is off unless you set `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in
 `.env` (a free app at https://developer.spotify.com/dashboard gives you both).
 Without them the bot just tells the user Spotify is not configured.

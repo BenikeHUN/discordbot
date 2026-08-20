@@ -44,14 +44,55 @@ async function getToken() {
   return cachedToken;
 }
 
+/** Spotify puts the useful part in the body, not the status line. */
+async function describeFailure(response) {
+  let detail = '';
+  try {
+    const body = await response.json();
+    detail = body?.error?.message || body?.error_description || '';
+  } catch {
+    // No JSON body, the status has to speak for itself.
+  }
+
+  // Spotify closed its editorial and algorithmic playlists to third party apps
+  // at the end of 2024. Those are the ones with an id starting 37i9dQ, and no
+  // amount of correct credentials will open them.
+  if (response.status === 403 || response.status === 404) {
+    const closed = response.url.includes('37i9dQ');
+    if (closed) {
+      return 'Spotify no longer lets apps read the playlists it puts together '
+        + 'itself, such as the daily mixes and the editorial charts. '
+        + 'A playlist made by a person works, so does an album or a track link.';
+    }
+  }
+
+  if (response.status === 403) {
+    return `Spotify refused the request${detail ? `: ${detail}` : ''}. `
+      + 'If the link is a private or collaborative playlist, the bot cannot see it. '
+      + 'Check also that the app on developer.spotify.com is not restricted.';
+  }
+
+  if (response.status === 404) return 'That Spotify link does not exist, or it is private.';
+  if (response.status === 429) return 'Spotify is rate limiting the bot. Try again shortly.';
+
+  return `Spotify request failed with ${response.status}${detail ? `: ${detail}` : ''}.`;
+}
+
 async function api(pathOrUrl) {
   const token = await getToken();
   const url = pathOrUrl.startsWith('http') ? pathOrUrl : `${API}${pathOrUrl}`;
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  let response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
 
-  if (response.status === 404) throw new Error('That Spotify link does not exist, or it is private.');
-  if (response.status === 429) throw new Error('Spotify is rate limiting the bot. Try again shortly.');
-  if (!response.ok) throw new Error(`Spotify request failed with ${response.status}.`);
+  // A token can lapse between being handed out and being used. One retry with
+  // a fresh one costs little and saves the user a confusing failure.
+  if (response.status === 401) {
+    cachedToken = null;
+    tokenExpiresAt = 0;
+    const retryToken = await getToken();
+    response = await fetch(url, { headers: { Authorization: `Bearer ${retryToken}` } });
+  }
+
+  if (!response.ok) throw new Error(await describeFailure(response));
 
   return response.json();
 }
