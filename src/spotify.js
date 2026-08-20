@@ -7,6 +7,14 @@ const LINK_RE = /(?:open\.spotify\.com\/(?:intl-[a-z-]+\/)?|spotify:)(track|albu
 let cachedToken = null;
 let tokenExpiresAt = 0;
 
+// Spotify's February 2026 change: a playlist now returns its contents only to
+// the token of the person who owns it. An application token has no owner, so it
+// gets metadata and nothing else, whatever the playlist's privacy setting says.
+const PLAYLISTS_CLOSED = 'Spotify stopped giving playlist contents to apps in February 2026. '
+  + 'Only a login belonging to the owner can read them now, so nothing about the '
+  + 'playlist settings will help, and this is not something the bot can work around. '
+  + 'Album and track links still work, and a YouTube playlist link works too.';
+
 export function isSpotifyUrl(value) {
   return LINK_RE.test(value);
 }
@@ -67,17 +75,7 @@ async function describeFailure(response) {
   }
 
   if (response.status === 403 || response.status === 404) {
-    const playlist = response.url.includes('/playlists/');
-    if (playlist) {
-      // Opening in a browser proves nothing here. A link stays shareable while
-      // the playlist is still not public in the sense the API cares about, and
-      // an app token only ever sees public ones.
-      return 'Spotify will not hand that playlist to an app. A link that opens '
-        + 'in a browser is not enough: the playlist itself has to be public. '
-        + 'Open it in Spotify, and under the three dots choose Add to profile, '
-        + 'or turn on Public. Collaborative playlists stay off limits either way.'
-        + (detail ? ` Spotify said: ${detail}` : '');
-    }
+    if (response.url.includes('/playlists/')) return PLAYLISTS_CLOSED;
 
     return `Spotify refused that link${detail ? `: ${detail}` : ''}. `
       + 'Check that it is public and still exists.';
@@ -174,13 +172,20 @@ export async function resolveSpotify(link, requestedBy, limit) {
   }
 
   const playlist = await api(`/playlists/${id}?fields=name`);
-  const items = await collect(`/playlists/${id}/tracks?limit=100`, limit);
+  // /tracks was removed in February 2026 in favour of /items. The old path is
+  // still tried as a fallback, since apps on extended quota kept it.
+  const items = await collect(`/playlists/${id}/items?limit=100`, limit)
+    .catch(() => collect(`/playlists/${id}/tracks?limit=100`, limit));
+
   const tracks = items
-    .map((item) => item?.track)
+    // The entry wrapper was renamed from track to item in the same change.
+    .map((entry) => entry?.item ?? entry?.track)
     // Local files and removed entries come back without an id and cannot be searched.
     .filter((raw) => raw && raw.id && raw.type !== 'episode')
     .map((raw) => toTrack(raw, requestedBy));
 
-  if (tracks.length === 0) throw new Error('That playlist has no playable tracks.');
+  // Metadata came back but no contents, which is exactly what an app token gets
+  // for a playlist it does not own.
+  if (tracks.length === 0) throw new Error(PLAYLISTS_CLOSED);
   return { playlistTitle: playlist.name || 'Spotify playlist', tracks };
 }

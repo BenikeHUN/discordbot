@@ -173,6 +173,14 @@ link is read for metadata, and the audio comes from the matching YouTube
 video. Convenient for pasting a playlist your friends already share, but the
 sound quality and the match are YouTube's, not Spotify's.
 
+**Spotify playlist links no longer work, and cannot be made to.** In February
+2026 Spotify changed playlist reads: an application token now receives a
+playlist's metadata and not its contents, which go only to a login belonging to
+the owner. It also removed `GET /playlists/{id}/tracks` in favour of
+`/playlists/{id}/items`. Making a playlist public does not help, because
+privacy was never what was being refused. Album and track links still work, and
+YouTube and SoundCloud playlists work normally.
+
 When a Spotify link is refused, `node scripts/spotify-check.js <playlist url>`
 says why. It reads a known public track, a known public album and a known
 public playlist alongside yours, which separates bad credentials from an app
@@ -180,16 +188,10 @@ Spotify has restricted from a playlist that is not public. Spotify answers a
 refusal with a bare "Forbidden" often enough that one failed request tells you
 nothing on its own.
 
-A playlist has to be public for the bot to read it, and that is a stricter
-condition than it looks: a playlist whose link opens fine in a browser can
-still be non public as far as the API is concerned. In Spotify, open the
-playlist, and under the three dots choose Add to profile, or turn on Public.
-Collaborative playlists cannot be read at all.
-
-Spotify closed its own editorial and algorithmic playlists to third party apps
-at the end of 2024. Those are the ones with an id starting `37i9dQ`, the daily
-mixes and the charts Spotify assembles itself, and no credentials will open
-them. Playlists made by people work, as do albums and single tracks.
+Playlist links are the exception, and not one the bot can fix. Since February
+2026 Spotify hands a playlist's contents only to a token belonging to the
+person who owns it; an application token gets the name and nothing else. Album
+and track links are unaffected.
 
 It is off unless you set `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` in
 `.env` (a free app at https://developer.spotify.com/dashboard gives you both).
