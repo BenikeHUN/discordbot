@@ -38,7 +38,7 @@ async function download() {
   }
 
   const url = `${NIGHTLY}/${asset}`;
-  console.log(`Fetching ${asset} for ${process.platform}/${process.arch}`);
+  console.log(`Downloading yt-dlp (${asset}) for ${process.platform}/${process.arch}`);
 
   const response = await fetch(url, { redirect: 'follow' });
   if (!response.ok) throw new Error(`Download failed with ${response.status}`);
@@ -47,7 +47,7 @@ async function download() {
   await writeFile(bundledYtDlp, Buffer.from(await response.arrayBuffer()));
   if (process.platform !== 'win32') await chmod(bundledYtDlp, 0o755);
 
-  console.log(`Installed ${bundledYtDlp}`);
+  console.log(`yt-dlp ready at ${bundledYtDlp}`);
   return bundledYtDlp;
 }
 
@@ -62,7 +62,7 @@ function run(binary, args) {
 let binary = await firstWorking(ytDlpCandidates());
 
 if (!binary) {
-  console.log('No runnable yt-dlp found.');
+  console.log('No yt-dlp present yet, setting one up.');
   try {
     binary = await download();
   } catch (error) {
