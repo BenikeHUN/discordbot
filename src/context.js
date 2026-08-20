@@ -17,6 +17,9 @@ class CommandContext {
   async defer() {}
   async reply() { throw new Error('not implemented'); }
   async fail(payload) { return this.reply(payload); }
+
+  /** The message this command produced, once it has one. */
+  async sentMessage() { return null; }
 }
 
 export class InteractionContext extends CommandContext {
@@ -48,6 +51,10 @@ export class InteractionContext extends CommandContext {
     if (this.interaction.deferred) return this.interaction.editReply(payload);
     if (this.interaction.replied) return this.interaction.followUp(payload);
     return this.interaction.reply(payload);
+  }
+
+  async sentMessage() {
+    return this.interaction.fetchReply().catch(() => null);
   }
 
   async fail(payload) {
@@ -97,4 +104,6 @@ export class MessageContext extends CommandContext {
     this.sent = await this.message.reply({ ...payload, allowedMentions: { repliedUser: false } });
     return this.sent;
   }
+
+  async sentMessage() { return this.sent ?? null; }
 }

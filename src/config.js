@@ -105,6 +105,7 @@ export const config = {
   defaultVolume: intEnv('DEFAULT_VOLUME', 100, { max: 1000 }),
   maxVolume: intEnv('MAX_VOLUME', 200, { max: 1000 }),
   volumeRampMs: intEnv('VOLUME_RAMP_MS', 1500, { max: 10_000 }),
+  repostAfter: intEnv('NOW_PLAYING_REPOST_AFTER', 5, { max: 1000 }),
   fadeInMs: intEnv('FADE_IN_MS', 1500, { max: 30_000 }),
   fadeInFrom: intEnv('FADE_IN_FROM', 50, { max: 1000 }),
 };

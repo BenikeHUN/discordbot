@@ -86,7 +86,12 @@ Every command works both as `.name` and as `/name`.
 | `.leave` | `.dc`, `.disconnect` | Disconnect from voice |
 | `.help` | `.h`, `.commands` | List everything above |
 
-Every now playing message carries buttons: Previous, Pause and Resume, Skip,
+There is one now playing message per server, edited on every track change
+rather than a new one per track. Once `NOW_PLAYING_REPOST_AFTER` other messages
+have arrived in the channel it is posted again at the bottom and the old one
+removed, so busy channels do not bury the controls halfway up the scrollback.
+
+It carries buttons: Previous, Pause and Resume, Skip,
 Stop, a Loop toggle that cycles off, track and queue, volume down and up in
 steps of 10, Shuffle, and Queue. They are drawn from the player's actual state,
 so a button that cannot do anything right now is greyed out, and pressing one
@@ -285,6 +290,7 @@ src/
   spotify.js          Spotify metadata, bridged to a YouTube search
   store.js            per server settings, saved to data/guilds.json
   components.js       now playing buttons, drawn from player state
+  now-playing.js      the one message per guild, edited or reposted
   guards.js           shared permission and state checks
   format.js           embeds, durations, progress bar
   commands/           one file per command

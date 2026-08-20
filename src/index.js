@@ -14,6 +14,7 @@ import { CommandError } from './guards.js';
 import { InteractionContext, MessageContext } from './context.js';
 import { LoopMode, allPlayers, getPlayer, playerEvents } from './player.js';
 import { BUTTON_PREFIX, VOLUME_STEP, playerComponents } from './components.js';
+import { showNowPlaying } from './now-playing.js';
 import { flushSettings, loadSettings } from './store.js';
 import { baseEmbed, trackEmbed } from './format.js';
 
@@ -220,7 +221,17 @@ function parseArguments(command, rest) {
 }
 
 client.on(Events.MessageCreate, async (message) => {
-  if (message.author.bot || !message.inGuild()) return;
+  if (!message.inGuild()) return;
+
+  // Counted before anything else, so the now playing controls can follow the
+  // conversation down instead of being left behind mid channel.
+  const active = getPlayer(message.guild);
+  if (active && message.channelId === active.textChannel?.id
+    && message.id !== active.nowPlayingMessage?.id) {
+    active.messagesSinceNowPlaying += 1;
+  }
+
+  if (message.author.bot) return;
   if (!message.content.startsWith(config.prefix)) return;
 
   const withoutPrefix = message.content.slice(config.prefix.length).trimStart();
@@ -268,10 +279,19 @@ playerEvents.on('create', (player) => {
       player.suppressAnnounce = false;
       return;
     }
-    player.textChannel?.send({
+    showNowPlaying(player, {
       embeds: [trackEmbed('Now playing', track)],
       components: playerComponents(player),
-    }).catch(() => {});
+    });
+  });
+
+  // Leave the message behind saying so, with controls that cannot act removed.
+  player.on('queueEnd', () => {
+    if (!player.nowPlayingMessage) return;
+    showNowPlaying(player, {
+      embeds: [baseEmbed('Queue finished', 'Add something with the play command.')],
+      components: [],
+    });
   });
 
   player.on('error', (error, track) => {

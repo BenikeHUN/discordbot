@@ -38,6 +38,11 @@ export class GuildPlayer extends EventEmitter {
     // bot does not quietly hand everyone the default level again.
     this.volume = getGuildSetting(guild.id, 'volume') ?? config.defaultVolume;
     this.textChannel = null;
+    // The one message that shows what is playing, edited rather than reposted.
+    this.nowPlayingMessage = null;
+    // Chat that arrived since, so the controls can be moved back into view
+    // once they have scrolled away.
+    this.messagesSinceNowPlaying = 0;
     this.voiceChannelId = null;
     this.connection = null;
     this.activeStream = null;
@@ -388,6 +393,7 @@ export class GuildPlayer extends EventEmitter {
     this.destroyed = true;
     this.clearLeaveTimer();
     this.stopVolumeRamp();
+    this.nowPlayingMessage = null;
     this.history.length = 0;
     this.queue.length = 0;
     this.current = null;

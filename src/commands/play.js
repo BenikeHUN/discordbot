@@ -73,4 +73,8 @@ export async function execute(ctx) {
     embeds: [trackEmbed(title, track)],
     components: wasIdle ? playerComponents(player) : [],
   });
+
+  // This reply is the now playing message, so the next track edits it rather
+  // than posting a second one underneath.
+  if (wasIdle) player.nowPlayingMessage = await ctx.sentMessage();
 }
