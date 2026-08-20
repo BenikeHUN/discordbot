@@ -6,3 +6,6 @@ npm-debug.log*
 
 # Upload bundles for panels, rebuilt on demand
 *.zip
+
+# Scratch space for the yt-dlp bundle unpacking itself
+tmp/

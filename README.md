@@ -207,6 +207,14 @@ they are encoded. Encoding uses `@discordjs/opus` when it is available and
 sometimes challenges datacenter IPs. Export your cookies to a Netscape-format
 `cookies.txt` and set `YTDLP_COOKIES` to its path. Use a throwaway account.
 
+**"Failed to extract entry" or "failed to map segment from shared object"
+from yt-dlp.** It is a PyInstaller bundle that unpacks itself on every run,
+and it ran out of room doing so. Panels usually mount a small tmpfs on `/tmp`,
+often 100 MB, which is less than the bundle needs, and two tracks starting at
+once need it twice over. The bot points yt-dlp at `tmp/` beside the code
+instead, so this should not come up; if it does, check that the server has
+free disk quota there.
+
 **HTTP 403, "Requested format is not available", or playback that used to
 work and now does not.** yt-dlp has fallen behind YouTube's player again. Pull
 the newest nightly:
@@ -238,6 +246,7 @@ going above it.
 
 ```
 bin/                  yt-dlp, downloaded for this platform by npm install
+tmp/                  scratch space yt-dlp unpacks itself into
 src/
   index.js            client, prefix and slash routing, auto leave
   config.js           .env parsing, binary probing

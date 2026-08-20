@@ -7,7 +7,7 @@ import {
   OAuth2Scopes,
   PermissionsBitField,
 } from 'discord.js';
-import { assertConfig, config, resolveBinaries } from './config.js';
+import { assertConfig, config, prepareTempDir, resolveBinaries } from './config.js';
 import { commands, findCommand, loadCommands } from './load-commands.js';
 import { deployCommands } from './deploy-commands.js';
 import { CommandError } from './guards.js';
@@ -17,6 +17,8 @@ import { baseEmbed, trackEmbed } from './format.js';
 
 assertConfig();
 await loadCommands();
+
+prepareTempDir();
 
 // Pick binaries that actually run here before anyone can issue a command.
 try {

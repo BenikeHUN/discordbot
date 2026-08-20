@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { config } from './config.js';
+import { config, ytDlpEnv } from './config.js';
 import { isSpotifyUrl, resolveSpotify } from './spotify.js';
 
 const URL_RE = /^https?:\/\//i;
@@ -31,6 +31,7 @@ function runJson(args) {
     const child = spawn(config.ytDlpPath, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
+      env: ytDlpEnv(),
     });
 
     let out = '';
@@ -221,7 +222,7 @@ export function createTrackStream(track) {
     '--format', 'bestaudio[acodec=opus]/bestaudio/best',
     '--output', '-',
     track.streamUrl ?? track.url,
-  ], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+  ], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: ytDlpEnv() });
 
   const ffmpeg = spawn(config.ffmpegPath, [
     '-hide_banner',
@@ -250,8 +251,15 @@ export function createTrackStream(track) {
   ytdlp.stdout.pipe(ffmpeg.stdin);
 
   const destroy = () => {
-    ytdlp.kill('SIGKILL');
-    ffmpeg.kill('SIGKILL');
+    // SIGTERM first: yt-dlp unpacks itself into a scratch directory on every
+    // run and only removes it when it is allowed to exit cleanly.
+    ytdlp.kill('SIGTERM');
+    ffmpeg.kill('SIGTERM');
+
+    setTimeout(() => {
+      if (ytdlp.exitCode === null && !ytdlp.killed) ytdlp.kill('SIGKILL');
+      if (ffmpeg.exitCode === null) ffmpeg.kill('SIGKILL');
+    }, 3_000).unref();
   };
 
   ytdlp.on('close', (code) => {
@@ -260,7 +268,7 @@ export function createTrackStream(track) {
     }
   });
   ffmpeg.on('close', () => {
-    if (!ytdlp.killed) ytdlp.kill('SIGKILL');
+    if (ytdlp.exitCode === null) ytdlp.kill('SIGTERM');
   });
 
   return {

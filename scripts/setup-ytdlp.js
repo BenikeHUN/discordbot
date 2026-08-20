@@ -9,7 +9,7 @@ import { spawn } from 'node:child_process';
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { bundledYtDlp, firstWorking, ytDlpCandidates } from '../src/config.js';
+import { bundledYtDlp, firstWorking, prepareTempDir, ytDlpCandidates, ytDlpEnv } from '../src/config.js';
 
 const NIGHTLY = 'https://github.com/yt-dlp/yt-dlp-nightly-builds/releases/latest/download';
 
@@ -53,11 +53,13 @@ async function download() {
 
 function run(binary, args) {
   return new Promise((resolve) => {
-    const child = spawn(binary, args, { stdio: 'inherit', windowsHide: true });
+    const child = spawn(binary, args, { stdio: 'inherit', windowsHide: true, env: ytDlpEnv() });
     child.on('error', () => resolve(false));
     child.on('close', (code) => resolve(code === 0));
   });
 }
+
+prepareTempDir();
 
 let binary = await firstWorking(ytDlpCandidates());
 let freshlyDownloaded = false;

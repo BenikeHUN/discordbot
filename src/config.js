@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -47,7 +47,9 @@ export function ffmpegCandidates() {
 /** Resolves true when the binary exists and actually runs on this system. */
 export function probeBinary(binary, args = ['--version']) {
   return new Promise((resolve) => {
-    const child = spawn(binary, args, { stdio: 'ignore', windowsHide: true });
+    // The redirected scratch directory matters here too: on a host with a tiny
+    // /tmp the probe itself is what fails first.
+    const child = spawn(binary, args, { stdio: 'ignore', windowsHide: true, env: ytDlpEnv() });
     const timer = setTimeout(() => {
       child.kill('SIGKILL');
       resolve(false);
@@ -97,6 +99,7 @@ export const config = {
   spotifyClientId: process.env.SPOTIFY_CLIENT_ID || null,
   spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET || null,
   leaveTimeout: intEnv('LEAVE_TIMEOUT', 120, { max: 86_400 }) * 1000,
+  tempDir: path.join(projectRoot, 'tmp'),
   maxQueueSize: 500,
   defaultVolume: intEnv('DEFAULT_VOLUME', 100, { max: 1000 }),
   maxVolume: intEnv('MAX_VOLUME', 200, { max: 1000 }),
@@ -132,6 +135,41 @@ export async function resolveBinaries() {
   config.ytDlpPath = ytDlp;
   config.ffmpegPath = ffmpeg;
   return { ytDlp, ffmpeg };
+}
+
+/**
+ * yt-dlp is a PyInstaller bundle that unpacks itself on every run, which needs
+ * far more room than the small tmpfs a panel typically mounts on /tmp. Pointing
+ * it at a directory beside the code puts it on the server's own disk instead,
+ * where the quota is measured in gigabytes rather than a hundred megabytes.
+ */
+export function ytDlpEnv() {
+  return {
+    ...process.env,
+    TMPDIR: config.tempDir,
+    TMP: config.tempDir,
+    TEMP: config.tempDir,
+  };
+}
+
+/** Creates the scratch directory and drops anything a killed run left behind. */
+export function prepareTempDir() {
+  try {
+    mkdirSync(config.tempDir, { recursive: true });
+  } catch {
+    return;
+  }
+
+  // A run that was killed mid track cannot clean up after itself, so those
+  // leftovers are swept here rather than being allowed to fill the disk.
+  for (const entry of readdirSync(config.tempDir)) {
+    if (!entry.startsWith('_MEI')) continue;
+    try {
+      rmSync(path.join(config.tempDir, entry), { recursive: true, force: true });
+    } catch {
+      // Still in use by a running yt-dlp, which will clean it up itself.
+    }
+  }
 }
 
 export function assertConfig({ needsClientId = false } = {}) {
